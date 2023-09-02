@@ -5,7 +5,7 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any
 
-from pysnooz.advertisement import SnoozAdvertisementData
+from pysnooz import SnoozAdvertisementData
 import voluptuous as vol
 
 from homeassistant.components.bluetooth import (

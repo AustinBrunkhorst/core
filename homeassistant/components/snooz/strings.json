@@ -24,6 +24,21 @@
       "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     }
   },
+  "entity": {
+    "fan": {
+      "white_noise": {
+        "name": "White noise"
+      },
+      "airflow": {
+        "name": "Airflow"
+      }
+    },
+    "climate": {
+      "auto_airflow": {
+        "name": "Auto Airflow"
+      }
+    }
+  },
   "services": {
     "transition_on": {
       "name": "Transition on",

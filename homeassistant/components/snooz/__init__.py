@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import logging
 
-from pysnooz.device import SnoozDevice
+from pysnooz import SnoozDevice
 
 from homeassistant.components.bluetooth import async_ble_device_from_address
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ADDRESS, CONF_TOKEN
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 
 from .const import DOMAIN, PLATFORMS
 from .models import SnoozConfigurationData
@@ -29,9 +29,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     device = SnoozDevice(ble_device, token)
+    info = await device.async_get_info()
+
+    if info is None:
+        # make sure we don't hold onto the connection
+        await device.async_disconnect()
+        raise ConfigEntryError("Failed to get device information")
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = SnoozConfigurationData(
-        ble_device, device, entry.title
+        ble_device, device, info, entry.title
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
