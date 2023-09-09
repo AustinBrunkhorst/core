@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 from bleak.backends.device import BLEDevice
-from pysnooz import SnoozDevice, SnoozDeviceInfo
+from pysnooz import SnoozAdvertisementData, SnoozDeviceCharacteristicData, SnoozDevice
 
 from homeassistant.helpers.device_registry import CONNECTION_BLUETOOTH, DeviceInfo
 
@@ -15,8 +15,9 @@ class SnoozConfigurationData:
     """Configuration data for Snooz."""
 
     ble_device: BLEDevice
+    adv_data: SnoozAdvertisementData
+    info: SnoozDeviceCharacteristicData
     device: SnoozDevice
-    info: SnoozDeviceInfo
     title: str
 
     @property
@@ -25,7 +26,7 @@ class SnoozConfigurationData:
         return DeviceInfo(
             name=self.title,
             manufacturer=self.info.manufacturer,
-            model=MODEL_NAMES[self.info.model],
+            model=MODEL_NAMES[self.adv_data.model],
             connections={(CONNECTION_BLUETOOTH, self.device.address)},
             identifiers={(DOMAIN, self.device.address)},
             hw_version=self.info.hardware,

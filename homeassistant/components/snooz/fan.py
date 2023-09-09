@@ -13,23 +13,16 @@ from pysnooz import (
     turn_off,
     turn_on,
 )
-import voluptuous as vol
 
 from homeassistant.components.fan import ATTR_PERCENTAGE, FanEntity, FanEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
-    ATTR_DURATION,
-    ATTR_VOLUME,
-    DEFAULT_TRANSITION_DURATION,
     DOMAIN,
-    SERVICE_TRANSITION_OFF,
-    SERVICE_TRANSITION_ON,
 )
 from .entity import SnoozEntity
 from .models import SnoozConfigurationData
@@ -40,34 +33,11 @@ async def async_setup_entry(
 ) -> None:
     """Set up Snooz/Breez fan entities from a config entry."""
 
-    platform = entity_platform.async_get_current_platform()
-    platform.async_register_entity_service(
-        SERVICE_TRANSITION_ON,
-        {
-            vol.Optional(ATTR_VOLUME): vol.All(
-                vol.Coerce(int), vol.Range(min=0, max=100)
-            ),
-            vol.Optional(ATTR_DURATION, default=DEFAULT_TRANSITION_DURATION): vol.All(
-                vol.Coerce(int), vol.Range(min=1, max=300)
-            ),
-        },
-        "async_transition_on",
-    )
-    platform.async_register_entity_service(
-        SERVICE_TRANSITION_OFF,
-        {
-            vol.Optional(ATTR_DURATION, default=DEFAULT_TRANSITION_DURATION): vol.All(
-                vol.Coerce(int), vol.Range(min=1, max=300)
-            ),
-        },
-        "async_transition_off",
-    )
-
     data: SnoozConfigurationData = hass.data[DOMAIN][entry.entry_id]
 
     entities = [SnoozWhiteNoiseFan(data)]
 
-    if data.info.supports_fan:
+    if data.adv_data.supports_fan:
         entities.append(SnoozAirflowFan(data))
 
     async_add_entities(entities)
@@ -142,25 +112,13 @@ class SnoozFan(SnoozEntity, FanEntity, RestoreEntity):
             else self.turn_off_command()
         )
 
-    async def async_transition_on(self, duration: int, **kwargs: Any) -> None:
-        """Transition on the device."""
-        await self._async_execute_command(
-            self.turn_on_command(kwargs.get("volume"), timedelta(seconds=duration))
-        )
-
-    async def async_transition_off(self, duration: int, **kwargs: Any) -> None:
-        """Transition off the device."""
-        await self._async_execute_command(
-            self.turn_off_command(duration=timedelta(seconds=duration))
-        )
-
     @property
     def feature_is_on(self) -> bool:
         """Return True if the feature is currently on."""
         raise NotImplementedError()
 
     @property
-    def feature_percentage(self) -> float:
+    def feature_percentage(self) -> int:
         """Return the current feature percentage."""
         raise NotImplementedError()
 
@@ -168,29 +126,29 @@ class SnoozFan(SnoozEntity, FanEntity, RestoreEntity):
         self, percentage: int | None = None, duration: timedelta | None = None
     ) -> SnoozCommandData:
         """Return the command to turn on the feature."""
-        raise NotImplementedError()
+        pass
 
     def turn_off_command(self, duration: timedelta | None = None) -> SnoozCommandData:
         """Return the command to turn off the feature."""
-        raise NotImplementedError()
+        pass
 
     def set_percentage_command(self, percentage: int) -> SnoozCommandData:
         """Return the command to set the feature percentage."""
-        raise NotImplementedError()
+        pass
 
 
 class SnoozWhiteNoiseFan(SnoozFan):
     """Fan representation of the white noise feature on all Snooz devices."""
 
-    _attr_translation_key = "white_noise"
+    _attr_translation_key = "sound"
 
     @property
     def feature_is_on(self) -> bool:
         return self._device.state.on
 
     @property
-    def feature_percentage(self) -> bool:
-        return self._device.state.on
+    def feature_percentage(self) -> int:
+        return self._device.state.volume
 
     def turn_on_command(
         self, percentage: int | None = None, duration: timedelta | None = None
@@ -211,15 +169,14 @@ class SnoozAirflowFan(SnoozFan):
     """Fan representation of the airflow feature on Breez devices."""
 
     _attr_translation_key = "airflow"
-    _attr_speed_count = 10
 
     @property
     def feature_is_on(self) -> bool:
         return self._device.state.fan_on
 
     @property
-    def feature_percentage(self) -> bool:
-        return self._device.state.fan_speed * 100
+    def feature_percentage(self) -> int:
+        return self._device.state.fan_speed
 
     def turn_on_command(
         self, percentage: int | None = None, duration: timedelta | None = None
@@ -233,4 +190,4 @@ class SnoozAirflowFan(SnoozFan):
 
     def set_percentage_command(self, percentage: int) -> SnoozCommandData:
         """Return the command to set the feature percentage."""
-        return set_fan_speed(percentage / 100)
+        return set_fan_speed(percentage)

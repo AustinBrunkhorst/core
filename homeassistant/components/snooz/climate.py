@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from pysnooz import enable_auto_temp, set_temp_target, turn_fan_off
+from pysnooz import set_auto_temp_enabled, set_temp_target
 
 from homeassistant.components.climate import (
     ATTR_CURRENT_TEMPERATURE,
@@ -34,17 +34,17 @@ async def async_setup_entry(
 
     data: SnoozConfigurationData = hass.data[DOMAIN][entry.entry_id]
 
-    if data.info.supports_fan:
+    if data.adv_data.supports_fan:
         async_add_entities([SnoozAutoAirflowClimate(data)])
 
 
 class SnoozAutoAirflowClimate(SnoozEntity, ClimateEntity, RestoreEntity):
     """Climate representation of a Breez device."""
 
-    _attr_translation_key = "auto_airflow"
+    _attr_translation_key = "auto_fan"
     _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
     _attr_temperature_unit = UnitOfTemperature.FAHRENHEIT
-    _attr_hvac_modes = [HVACMode.OFF, HVACMode.FAN_ONLY]
+    _attr_hvac_modes = [HVACMode.OFF, HVACMode.AUTO]
 
     def __init__(self, data: SnoozConfigurationData) -> None:
         """Initialize a Breez climate entity."""
@@ -119,7 +119,7 @@ class SnoozAutoAirflowClimate(SnoozEntity, ClimateEntity, RestoreEntity):
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set the HVAC mode."""
         await self._async_execute_command(
-            enable_auto_temp() if hvac_mode == HVACMode.FAN_ONLY else turn_fan_off()
+            set_auto_temp_enabled(hvac_mode == HVACMode.AUTO)
         )
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
@@ -129,9 +129,7 @@ class SnoozAutoAirflowClimate(SnoozEntity, ClimateEntity, RestoreEntity):
         )
 
     def _device_hvac_mode(self) -> HVACMode:
-        return (
-            HVACMode.FAN_ONLY if self._device.state.fan_auto_enabled else HVACMode.OFF
-        )
+        return HVACMode.AUTO if self._device.state.fan_auto_enabled else HVACMode.OFF
 
     def _device_hvac_action(self) -> HVACAction:
         return HVACAction.FAN if self._device.state.fan_on else HVACAction.OFF

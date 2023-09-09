@@ -26,41 +26,61 @@
   },
   "entity": {
     "fan": {
-      "white_noise": {
-        "name": "White noise"
+      "sound": {
+        "name": "Sound"
       },
       "airflow": {
         "name": "Airflow"
       }
     },
     "climate": {
-      "auto_airflow": {
-        "name": "Auto Airflow"
+      "auto_fan": {
+        "name": "Auto Fan"
       }
     }
   },
   "services": {
     "transition_on": {
       "name": "Transition on",
-      "description": "Transitions to a target volume level over time.",
+      "description": "Transitions device settings over time. By default, all settings will be read from the the device state.",
       "fields": {
+        "device_id": {
+          "name": "[%key:common::config_flow::data::device%]",
+          "description": "The Snooz device whose settings should be transitioned."
+        },
         "duration": {
           "name": "Transition duration",
-          "description": "Time it takes to reach the target volume level."
+          "description": "Time it takes to reach the target device settings."
         },
         "volume": {
           "name": "Target volume",
-          "description": "If not specified, the volume level is read from the device."
+          "description": "If specified, the device volume setting will transition to this value."
+        },
+        "fan_speed": {
+          "name": "Target fan speed",
+          "description": "If specified, the device fan speed setting will transition to this value. Requires a Breez device."
         }
       }
     },
     "transition_off": {
       "name": "Transition off",
-      "description": "Transitions volume off over time.",
+      "description": "Transitions device settings off over time. By default, all device settings will be included in the transition.",
       "fields": {
+        "device_id": {
+          "name": "[%key:component::snooz::services::transition_on::fields::device_id::name%]",
+          "description": "[%key:component::snooz::services::transition_on::fields::device_id::description%]"
+        },
         "duration": {
           "name": "[%key:component::snooz::services::transition_on::fields::duration::name%]",
-          "description": "Time it takes to turn off."
+          "description": "Time it takes to turn off the applicable device settings."
+        },
+        "volume": {
+          "name": "Transition volume",
+          "description": "Includes the device volume in the transition."
+        },
+        "fan_speed": {
+          "name": "Transition fan speed",
+          "description": "Includes the device fan speed in the transition. Requires a Breez device."
         }
       }
     }

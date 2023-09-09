@@ -1,24 +1,49 @@
 """The Snooz component."""
 from __future__ import annotations
+import asyncio
 
 import logging
 
-from pysnooz import SnoozDevice
+from pysnooz import (
+    SnoozAdvertisementData,
+    SnoozDevice,
+    SnoozDeviceModel,
+    SnoozFirmwareVersion,
+    parse_snooz_advertisement,
+)
 
-from homeassistant.components.bluetooth import async_ble_device_from_address
+from homeassistant.components.bluetooth import (
+    BluetoothScanningMode,
+    BluetoothServiceInfo,
+    async_ble_device_from_address,
+    async_process_advertisements,
+)
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_ADDRESS, CONF_TOKEN
+from homeassistant.const import CONF_ADDRESS, CONF_MODEL, CONF_TOKEN
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
+from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, PLATFORMS
+from .const import (
+    DOMAIN,
+    PLATFORMS,
+    LOGGER,
+    CONF_FIRMWARE_VERSION,
+)
 from .models import SnoozConfigurationData
+from .services import async_setup_services
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up Snooz component."""
+    await async_setup_services(hass)
+
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Snooz device from a config entry."""
     address: str = entry.data[CONF_ADDRESS]
-    token: str = entry.data[CONF_TOKEN]
 
     # transitions info logs are verbose. Only enable warnings
     logging.getLogger("transitions.core").setLevel(logging.WARNING)
@@ -28,16 +53,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             f"Could not find Snooz with address {address}. Try power cycling the device"
         )
 
-    device = SnoozDevice(ble_device, token)
-    info = await device.async_get_info()
+    token: str = entry.data[CONF_TOKEN]
+    model: int = entry.data[CONF_MODEL]
+    firmware_version: int = entry.data[CONF_FIRMWARE_VERSION]
+    adv_data = SnoozAdvertisementData(
+        SnoozDeviceModel(model), SnoozFirmwareVersion(firmware_version), token
+    )
+    device = SnoozDevice(ble_device, adv_data)
 
-    if info is None:
-        # make sure we don't hold onto the connection
+    device_info = await device.async_get_info()
+
+    if device_info is None:
         await device.async_disconnect()
         raise ConfigEntryError("Failed to get device information")
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = SnoozConfigurationData(
-        ble_device, device, info, entry.title
+        ble_device, adv_data, device_info, device, entry.title
     )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -66,3 +97,70 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.data.pop(DOMAIN)
 
     return unload_ok
+
+
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate configuration entry."""
+
+    # up to date
+    if config_entry.version == 2:
+        return True
+
+    LOGGER.debug(
+        f"Migrating entry {config_entry.entry_id} from version {config_entry.version}"
+    )
+
+    address = config_entry.data[CONF_ADDRESS]
+
+    adv_data = await hass.async_create_task(async_wait_for_advertisement(hass, address))
+
+    if adv_data is None:
+        LOGGER.error(
+            f"Could not find supported advertisement for address {address} while migrating entry {config_entry.entry_id}"
+        )
+        return False
+
+    hass.config_entries.async_update_entry(
+        config_entry,
+        data={
+            **config_entry.data,
+            CONF_MODEL: adv_data.model,
+            CONF_FIRMWARE_VERSION: adv_data.firmware_version,
+        },
+    )
+
+    LOGGER.debug(f"Migration complete. Model: {adv_data}")
+    return True
+
+
+async def async_wait_for_advertisement(
+    hass: HomeAssistant, address: str
+) -> SnoozAdvertisementData | None:
+    """Process advertisements for an address until a supported advertisement is found."""
+
+    result = None
+
+    def is_supported_advertisement(
+        service_info: BluetoothServiceInfo,
+    ) -> bool:
+        nonlocal result
+        result = parse_snooz_advertisement(service_info)
+
+        if result is None:
+            LOGGER.warning(f"Got unsupported advertisement: {service_info.name}.")
+            return False
+
+        return True
+
+    try:
+        await async_process_advertisements(
+            hass,
+            is_supported_advertisement,
+            {"address": address},
+            BluetoothScanningMode.ACTIVE,
+            10,
+        )
+    except asyncio.TimeoutError:
+        pass
+
+    return result

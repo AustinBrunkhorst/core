@@ -1,10 +1,12 @@
 transition_on:
-  target:
-    entity:
-      integration: snooz
-      domain: fan
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: snooz
     duration:
+      default: 20
       selector:
         number:
           min: 1
@@ -17,17 +19,35 @@ transition_on:
           min: 1
           max: 100
           unit_of_measurement: "%"
+    fan_speed:
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: "%"
 
 transition_off:
-  target:
-    entity:
-      integration: snooz
-      domain: fan
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: snooz
     duration:
+      default: 20
       selector:
         number:
           min: 1
           max: 300
           unit_of_measurement: seconds
           mode: box
+    volume:
+      selector:
+        constant:
+          label: Enabled
+          value: true
+    fan_speed:
+      selector:
+        constant:
+          label: Enabled
+          value: true
