@@ -1,5 +1,5 @@
 # serializer version: 1
-# name: test_v1_migration
+# name: test_updating_entry_during_setup
   ConfigEntrySnapshot({
     'data': dict({
       'address': '00:00:00:00:AB:CD',
@@ -17,6 +17,6 @@
     'source': 'user',
     'title': 'Mock Title',
     'unique_id': '00:00:00:00:AB:CD',
-    'version': 2,
+    'version': 1,
   })
 # ---

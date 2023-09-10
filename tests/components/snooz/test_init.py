@@ -40,8 +40,10 @@ async def test_reloading_entry_cleans_up_connections(
     assert not mock_connected_snooz.device.is_connected
 
 
-async def test_v1_migration(hass: HomeAssistant, snapshot: SnapshotAssertion) -> None:
-    """Tests entry migration from v1 -> v2."""
+async def test_updating_entry_during_setup(
+    hass: HomeAssistant, snapshot: SnapshotAssertion
+) -> None:
+    """Tests loading device information and saving in entry during setup."""
 
     async def _async_process_advertisements(
         _hass, _callback, _matcher, _mode, _timeout
@@ -55,5 +57,7 @@ async def test_v1_migration(hass: HomeAssistant, snapshot: SnapshotAssertion) ->
         _async_process_advertisements,
     ):
         device = await create_mock_snooz()
-        entry = await create_mock_snooz_config_entry(hass, device, version=1)
+        entry = await create_mock_snooz_config_entry(
+            hass, device, needs_adv_update=True
+        )
         assert entry == snapshot
