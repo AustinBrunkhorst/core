@@ -24,6 +24,21 @@
       "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     }
   },
+  "entity": {
+    "fan": {
+      "sound": {
+        "name": "Sound"
+      },
+      "airflow": {
+        "name": "Airflow"
+      }
+    },
+    "climate": {
+      "smart_fan": {
+        "name": "Smart Fan"
+      }
+    }
+  },
   "services": {
     "transition_on": {
       "name": "Transition on",
