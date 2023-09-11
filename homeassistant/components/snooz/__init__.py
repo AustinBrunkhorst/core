@@ -4,13 +4,14 @@ from __future__ import annotations
 import asyncio
 import logging
 
+import async_timeout
 from pysnooz import (
     SnoozAdvertisementData,
+    SnoozDevice,
     SnoozDeviceModel,
     SnoozFirmwareVersion,
     parse_snooz_advertisement,
 )
-from pysnooz.device import SnoozDevice
 
 from homeassistant.components.bluetooth import (
     BluetoothScanningMode,
@@ -20,8 +21,8 @@ from homeassistant.components.bluetooth import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ADDRESS, CONF_MODEL, CONF_TOKEN
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.core import CoreState, HomeAssistant
+from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 
 from .const import CONF_FIRMWARE_VERSION, DOMAIN, LOGGER, PLATFORMS
 from .models import SnoozConfigurationData
@@ -77,11 +78,29 @@ async def _async_load_entry_data(
             f"Could not find Snooz with address {address}. Try power cycling the device"
         )
 
+    device = SnoozDevice(ble_device, adv_data)
+
+    try:
+        # prevent longer connection times during initial startup
+        async with async_timeout.timeout(
+            None if hass.state == CoreState.running else 10
+        ):
+            info = await device.async_get_info()
+    except asyncio.TimeoutError as ex:
+        raise ConfigEntryNotReady(
+            f"Could not establish connection to ({address})."
+            f" Try power cycling the device"
+        ) from ex
+
+    if info is None:
+        raise ConfigEntryError("Unable to load device info. Check logs.")
+
     return SnoozConfigurationData(
         ble_device,
         adv_data,
-        device=SnoozDevice(ble_device, adv_data),
-        title=entry.title,
+        info,
+        device,
+        entry.title,
     )
 
 
