@@ -78,12 +78,12 @@ class SnoozFanBaseEntity(SnoozEntity, FanEntity, RestoreEntity):
 
     @property
     def percentage(self) -> int | None:
-        """Volume level of the device."""
+        """Percentage level of the feature."""
         return self._percentage if self.assumed_state else self.feature_percentage
 
     @property
     def is_on(self) -> bool | None:
-        """Power state of the device."""
+        """Power state of the feature."""
         return self._is_on if self.assumed_state else self.feature_is_on
 
     @property
@@ -97,15 +97,15 @@ class SnoozFanBaseEntity(SnoozEntity, FanEntity, RestoreEntity):
         preset_mode: str | None = None,
         **kwargs: Any,
     ) -> None:
-        """Turn on the device."""
+        """Turn on the feature."""
         await self._async_execute_command(self.turn_on_command(percentage))
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn off the device."""
+        """Turn off the feature."""
         await self._async_execute_command(self.turn_off_command())
 
     async def async_set_percentage(self, percentage: int) -> None:
-        """Set the volume of the device. A value of 0 will turn off the device."""
+        """Set the percentage level of the feature. A value of 0 will turn off the feature."""
         await self._async_execute_command(
             self.set_percentage_command(percentage)
             if percentage > 0
