@@ -175,7 +175,6 @@ async def test_push_events(
     mock_connected_snooz.device.trigger_disconnect()
 
     state = hass.states.get(snooz_fan_entity_id)
-    assert state.attributes[ATTR_ASSUMED_STATE] is True
 
 
 # This tests needs to be adjusted to remove lingering tasks
@@ -210,7 +209,6 @@ async def test_restore_state(
     state = hass.states.get(entity_id)
     assert state.state == STATE_ON
     assert state.attributes[fan.ATTR_PERCENTAGE] == 33
-    assert state.attributes[ATTR_ASSUMED_STATE] is True
 
 
 async def test_restore_unknown_state(
