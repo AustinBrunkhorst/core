@@ -2,6 +2,8 @@
 
 import logging
 
+from pysnooz import SnoozDeviceModel
+
 from homeassistant.const import Platform
 
 DOMAIN = "snooz"
@@ -18,3 +20,9 @@ ATTR_DURATION = "duration"
 DEFAULT_TRANSITION_DURATION = 20
 
 CONF_FIRMWARE_VERSION = "firmware_version"
+
+MODEL_NAMES = {
+    SnoozDeviceModel.ORIGINAL: "SNOOZ Original",
+    SnoozDeviceModel.PRO: "SNOOZ Pro",
+    SnoozDeviceModel.BREEZ: "Breez",
+}
