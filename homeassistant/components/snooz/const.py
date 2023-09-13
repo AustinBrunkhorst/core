@@ -7,7 +7,12 @@ from pysnooz import SnoozDeviceModel
 from homeassistant.const import Platform
 
 DOMAIN = "snooz"
-PLATFORMS: list[Platform] = [Platform.FAN, Platform.CLIMATE]
+PLATFORMS: list[Platform] = [
+    Platform.FAN,
+    Platform.CLIMATE,
+    Platform.LIGHT,
+    Platform.SWITCH,
+]
 
 LOGGER = logging.getLogger(__package__)
 

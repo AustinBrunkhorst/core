@@ -35,7 +35,17 @@
     },
     "climate": {
       "smart_fan": {
-        "name": "Smart Fan"
+        "name": "Smart fan"
+      }
+    },
+    "light": {
+      "button_lights": {
+        "name": "Button lights"
+      }
+    },
+    "switch": {
+      "night_mode": {
+        "name": "Night mode"
       }
     }
   },
